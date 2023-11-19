@@ -1,0 +1,45 @@
+database gen
+screen
+{
+*****************MANTENIMIENTO DE CLIENTES*******************
+Nombres         [f1                                         ]
+Apellidos       [f2                                         ]
+
+Documento       [f3        ]    Telefono(s)      [f4        ]
+					         [f4_2      ]
+
+Correo          [f5                             ]
+Fecha de Nacimiento     [f6        ]     Edad [f7  ]
+
+Pais de Residencia      [f8                        ]
+Ciudad de Residencia    [f9                        ]
+
+Pais de Nacimiento      [f10                       ]
+Ciudad de Nacimiento    [f11                       ]
+*************************************************************
+
+
+}
+end
+
+tables
+dat_clie_0001
+
+attributes
+f1=dat_clie_0001.nombres;--, comments="Digite sus nombres";
+f2=dat_clie_0001.apellidos;--, comments="Digite sus apellidos";
+f3=dat_clie_0001.documento;--, comments="Digite su numero de Documento";
+f4=dat_clie_0001.telefono;--, comments="Digite su numero de Telefono";
+f4_2=dat_clie_0001.telefono2;
+f5=dat_clie_0001.correo;--, comments="Digite su Correo Electronico";
+f6=dat_clie_0001.fecha_nacimiento;--, comments="Digite su Fecha de Nacimiento";
+f7=dat_clie_0001.edad, noentry;
+f8=dat_clie_0001.pais_residencia;--, comments="Digite su Pais de Residencia";
+f9=dat_clie_0001.ciudad_residencia;--, comments="Digite su Ciudad de Residencia";
+f10=dat_clie_0001.pais_nacimiento;--, comments="Digite su Pais de Nacimiento";
+f11=dat_clie_0001.ciudad_nacimiento;--, comments="Digite su Ciudad de Nacimiento";
+
+
+--instructions
+--        delimiters "| "
+
