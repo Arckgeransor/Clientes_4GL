@@ -152,6 +152,15 @@ function window_datos_bas_0001(v_tf)
 					next field telefono2
 				end if
 
+				if v_last_opc = "documento" and v_nn = 1 then
+					let v_nn = 0
+					initialize rl_dat_clie_0001.telefono to null
+					initialize rl_dat_clie_0001.telefono2 to null
+					display by name rl_dat_clie_0001.telefono, rl_dat_clie_0001.telefono2
+				end if
+
+##Se cambia funcionalidad de Telefono y se deja comentada para tener en cuenta los cambios respectivo
+{
 			before field telefono
 				if v_last_opc = "correo" then
 					let v_last_opc = "correo"
@@ -178,11 +187,11 @@ function window_datos_bas_0001(v_tf)
 				if v_is_tel2 and v_tip_tel = 2 then
 					next field correo
 				end if
-{
+
 				if v_tf = 2 and v_last_opc = "telefono2" and v_is_tel2 then
 					next field correo
 				end if
-}
+
 				
 			after field telefono
 				let length_campo = 0
@@ -196,8 +205,8 @@ function window_datos_bas_0001(v_tf)
                                         	next field telefono
                                 	end if
 
-					if length_campo < 5 or length_campo > 11 then
-                                        	error "Cantidad invalida de digitos en documento, por favor verificar"
+					if length_campo != 10 then
+                                        	error "Cantidad invalida de digitos en telefono fijo, por favor verificar"
                                         	next field telefono
                                 	end if
 
@@ -252,6 +261,109 @@ function window_datos_bas_0001(v_tf)
 				if v_tf = 3 then
 					
 				end if
+}
+
+			before field telefono
+				if v_nn = 0 then
+					call valida_fijo_movil_0001() returning v_tip_tel, v_nn
+				end if
+
+				if v_tip_tel = 0 then
+					next field correo
+				end if
+
+				if v_tip_tel = 2 then
+					next field telefono2
+				end if 
+
+			after field telefono
+				if v_last_opc = "correo" then
+					let v_last_opc = "correo"
+				else
+					let v_last_opc = "telefono"
+				end if
+
+				let length_campo = length(rl_dat_clie_0001.telefono)
+
+                                if rl_dat_clie_0001.telefono is null or rl_dat_clie_0001.telefono = "" then
+                                        error "El campo de Telefono no puede ser nulo"
+                                        next field telefono
+                                end if
+
+                                if length_campo != 10 then
+                                        error "Cantidad invalida de digitos en telefono fijo, por favor verificar"
+                                        next field telefono
+                                end if
+
+                                if rl_dat_clie_0001.telefono[1] != 6 then
+                                        error "Telefono fijo nivel Colombia debe iniciar por 6, por favor revise"
+                                        next field telefono
+                                end if
+
+                                call valida_dato_numerico_0001(rl_dat_clie_0001.telefono, TRUE) returning v_tf
+
+				if not v_tf then
+					next field telefono
+				end if
+
+				if v_last_opc = "telefono" and v_tip_tel = 3 then
+					next field telefono2
+				end if
+
+				if v_last_opc = "telefono" then
+					next field correo
+				end if
+
+				if v_last_opc = "correo" then
+					next field documento
+				end if
+
+
+			before field telefono2
+
+			after field telefono2
+				if v_last_opc = "correo" then
+                                        let v_last_opc = "correo"
+                                else
+                                        let v_last_opc = "telefono2"
+                                end if
+{
+				if v_last_opc = "correo" then
+                                        next field documento
+                                end if
+}
+
+				let length_campo = length(rl_dat_clie_0001.telefono2)
+
+                                if rl_dat_clie_0001.telefono2 is null or rl_dat_clie_0001.telefono2 = "" then
+                                        error "El campo de Telefono Movil no puede ser nulo"
+                                        next field telefono
+                                end if
+
+                                if length_campo != 10 then
+                                        error "Cantidad invalida de digitos en telefono movil, por favor verificar"
+                                        next field telefono2
+                                end if
+
+                                if rl_dat_clie_0001.telefono2[1] != 3 then
+                                        error "Telefono movil nivel Colombia debe iniciar por 3, por favor revise"
+                                        next field telefono2
+                                end if
+
+                                call valida_dato_numerico_0001(rl_dat_clie_0001.telefono2, TRUE) returning v_tf
+
+                                if not v_tf then
+                                        next field telefono2
+                                end if
+
+				if v_last_opc = "correo" and v_tip_tel = 2 then
+                                        next field documento
+                                end if
+
+				if v_last_opc = "correo" and v_tip_tel = 3 then
+                                        next field telefono
+                                end if
+
 
 			before field correo
 				let v_last_opc = "correo"
@@ -272,7 +384,12 @@ function window_datos_bas_0001(v_tf)
 						let v_is_tel2 = 1
 						next field telefono2
 					end if
+				end if
 
+				call valida_mail_0001(rl_dat_clie_0001.correo, TRUE) returning v_tf
+
+				if not v_tf then
+					next field correo
 				end if
 
 
@@ -310,7 +427,54 @@ end function
 function valida_mail_0001(mail, v_tf)
 	define 
 		mail   char(100),
-		v_tf   smallint
+		v_tf, v_i, length_mail, length_dominio   smallint,
+		dominio, dom_empresa  char(18)
+		
+	let length_mail = length(mail)
+	
+	let dominio = " "
+
+	--Extrae el dominio del cliente
+	for v_i = 1 to length_mail
+		let dominio[v_i] = mail[v_i]
+		if mail[v_i] matches "@" then
+			exit for
+		end if
+	end for
+
+	let length_dominio = length(dominio)
+
+	if dominio[length_dominio] not matches "*@*" then
+		error "El correo no se encuentra con el simbolo '@', por favor verifique"
+		return FALSE
+	end if
+
+	let dominio = dominio[1, length_dominio -1]
+
+	let length_dominio = length(dominio)
+
+	if length_dominio < 5 or length_dominio > 11 then
+		error "Dominio debe estar parametrizado con cantidad de caracteres entre 5 y 11, por favor verificar"
+		return FALSE
+	end if
+
+
+	let length_dominio = length_dominio - 1
+
+	--Extrae el dominio de Empresa
+	for v_i = length_dominio + 2 to length_mail
+		if mail[v_i] matches "." then
+			exit for
+		end if
+		let dom_empresa[v_i - length_dominio] = mail[v_i]
+	end for
+
+	if dom_empresa not matches "*mercaderiag*" then
+		error "Dominio de empresa debe ser unicamente mercaderiag, por favor revise"
+		return FALSE
+	end if
+
+	
 
 	return v_tf
 end function
