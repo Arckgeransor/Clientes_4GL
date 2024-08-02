@@ -107,7 +107,8 @@ function window_datos_bas_0001(v_tf)
 		v_tf, v_nn, length_campo,	
 		v_is_tel2, v_is_tel1, v_tip_tel       smallint,
 		rl_dat_clie_0001    record like dat_clie_0001.*,
-		v_last_opc   char(20)
+		v_last_opc   char(20),
+		v_edad char(3)
 
 	open window w_datos_bas_0001 at 5,2 with form "dat_bas_0001" attributes (border, message line 20)
 
@@ -120,10 +121,22 @@ function window_datos_bas_0001(v_tf)
 					next field nombres
 				end if
 
+				call valida_dato_caracter_0001(rl_dat_clie_0001.nombres, TRUE) returning v_tf
+
+				if v_tf = 0 then
+					next field nombres
+				end if
+
 			after field apellidos
 				let v_last_opc = "apellidos"
 				if rl_dat_clie_0001.apellidos is null or rl_dat_clie_0001.apellidos = "" then
                                         error "El campo de Apellidos no puede ser nulo"
+                                        next field apellidos
+                                end if
+
+				call valida_dato_caracter_0001(rl_dat_clie_0001.apellidos, TRUE) returning v_tf
+
+                                if v_tf = 0 then
                                         next field apellidos
                                 end if
 
@@ -306,18 +319,14 @@ function window_datos_bas_0001(v_tf)
 					next field telefono
 				end if
 
-				if v_last_opc = "telefono" and v_tip_tel = 3 then
-					next field telefono2
-				end if
-
-				if v_last_opc = "telefono" then
+				if v_tip_tel = 1 and (fgl_lastkey() = fgl_keyval("down") or 
+						      fgl_lastkey() = fgl_keyval("return")) then
 					next field correo
 				end if
 
-				if v_last_opc = "correo" then
+				if v_tip_tel = 1 and fgl_lastkey() = fgl_keyval("up") then
 					next field documento
 				end if
-
 
 			before field telefono2
 
@@ -337,7 +346,7 @@ function window_datos_bas_0001(v_tf)
 
                                 if rl_dat_clie_0001.telefono2 is null or rl_dat_clie_0001.telefono2 = "" then
                                         error "El campo de Telefono Movil no puede ser nulo"
-                                        next field telefono
+                                        next field telefono2
                                 end if
 
                                 if length_campo != 10 then
@@ -356,50 +365,97 @@ function window_datos_bas_0001(v_tf)
                                         next field telefono2
                                 end if
 
-				if v_last_opc = "correo" and v_tip_tel = 2 then
-                                        next field documento
-                                end if
-
-				if v_last_opc = "correo" and v_tip_tel = 3 then
-                                        next field telefono
-                                end if
-
+				if v_tip_tel = 2 and fgl_lastkey() = fgl_keyval("up") then
+					next field documento
+				end if
 
 			before field correo
 				let v_last_opc = "correo"
 
 			after field correo
 				let v_last_opc = "correo"
-				if fgl_lastkey() = fgl_keyval("UP") then
-					if v_tip_tel = 0 then
-						next field documento	
-					end if
-					
-					if v_tip_tel = 1 then
-						let v_is_tel1 = 1
-						next field telefono
-					end if
 
-					if v_tip_tel = 2 then
-						let v_is_tel2 = 1
-						next field telefono2
-					end if
+				if rl_dat_clie_0001.correo = " " or rl_dat_clie_0001.correo is null then
+					error "El campo de correo no puede estar vacio"
+					next field correo
 				end if
 
 				call valida_mail_0001(rl_dat_clie_0001.correo, TRUE) returning v_tf
 
 				if not v_tf then
-					next field correo
+                                        next field correo
+                                end if
+
+				if v_tip_tel = 0 and fgl_lastkey() = fgl_keyval("up") then
+                                        next field documento
+                                end if
+
+				if v_tip_tel = 1 and fgl_lastkey() = fgl_keyval("up") then
+					next field telefono
 				end if
 
+				if v_tip_tel = 2 and fgl_lastkey() = fgl_keyval("up") then
+					next field telefono2
+                                end if
+
+				if v_tip_tel = 3 and fgl_lastkey() = fgl_keyval("up") then
+					next field telefono2
+				end if
+
+			before field fecha_nacimiento
+				let v_last_opc = "fecha_nacimiento"
+			
+			after field fecha_nacimiento
+				let v_last_opc = "fecha_nacimiento"
+				if rl_dat_clie_0001.fecha_nacimiento >= today -18 units year then
+					error "Solo se pueden registrar mayores de edad, por favor verificar"
+					next field fecha_nacimiento
+				end if
+
+			before field ciudad_residencia
+				let v_last_opc = "ciudad_residencia"
+
+
+			after field ciudad_residencia
+				let v_last_opc = "ciudad_residencia"
+				if upshift(rl_dat_clie_0001.ciudad_residencia) not matches "*BOGOTA*" then
+					error "Sistema de Clientes presente solo en Bogota, por favor revise"
+					next field ciudad_residencia
+				end if
+
+			before field ciudad_nacimiento
+				let v_last_opc = "ciudad_nacimiento"
+
+			after field ciudad_nacimiento
+                                let v_last_opc = "ciudad_nacimiento"
+				if v_last_opc = "ciudad_nacimiento" and fgl_lastkey() = fgl_keyval("up") then
+					next field pais_nacimiento
+				end if
+
+				if v_last_opc = "ciudad_nacimiento" 
+				and (fgl_lastkey() = fgl_keyval("down") or fgl_lastkey() = fgl_keyval("return")) then
+                                        next field nombres
+                                end if
+{
+			on key (RETURN)
+				if v_last_opc = "ciudad_nacimiento" and fgl_lastkey() = fgl_keyval("return") then
+					next field nombres
+				end if
+}
 
 			on key (INTERRUPT)
 				error "Proceso Cancelado"
 				exit input
 
 			on key (F10)
+				call window_datos_pago_0001(FALSE)
+				
 				error "Siguiente ventana en proceso"
 				exit input
+
+			if v_last_opc = "ciudad_nacimiento" then
+				next field nombres
+			end if
 
 		end input
 	close window w_datos_bas_0001
@@ -410,7 +466,25 @@ end function
 --Funcion para ingresar Datos de Pago del Cliente
 function window_datos_pago_0001(v_tf)
         define
-                v_tf smallint
+                v_tf smallint,
+		rl_dat_pag_0001  record
+			tipo_pago1 char(1),
+			tipo_pago2 char(1),
+			tipo_pago3 char(1),
+			tipo_pago4 char(1)
+		end record
+
+	open window w_dat_pag_0001 at 5,5 with form "dat_pag_0001" attributes (border)
+		input by name rl_dat_pag_0001.tipo_pago1 thru rl_dat_pag_0001.tipo_pago4
+			on key (F7)
+				if infield(tipo_pago1) 
+				and (rl_dat_pag_0001.tipo_pago1 is null 
+				or rl_dat_pag_0001.tipo_pago1 = "") then
+					let rl_dat_pag_0001.tipo_pago1 = "X" 
+					display by name rl_dat_pag_0001.tipo_pago1 attributes(reverse)
+				end if
+		end input
+	close window w_dat_pag_0001
 
         return v_tf
 end function
@@ -427,8 +501,11 @@ end function
 function valida_mail_0001(mail, v_tf)
 	define 
 		mail   char(100),
-		v_tf, v_i, length_mail, length_dominio   smallint,
-		dominio, dom_empresa  char(18)
+		v_tf, v_i, length_mail, length_dominio,   
+		count_points, length_dom_empresa,  
+		length_dom_comercial, length_dominio2, count_dom_com smallint,
+		dominio, dominio2, dom_empresa, dom_comercial  char(100)
+		
 		
 	let length_mail = length(mail)
 	
@@ -437,19 +514,47 @@ function valida_mail_0001(mail, v_tf)
 	--Extrae el dominio del cliente
 	for v_i = 1 to length_mail
 		let dominio[v_i] = mail[v_i]
-		if mail[v_i] matches "@" then
+		if mail[v_i] = "@" then
 			exit for
 		end if
 	end for
 
 	let length_dominio = length(dominio)
 
-	if dominio[length_dominio] not matches "*@*" then
+	if length_dominio = 0 then
+		let length_dominio = 1
+	end if
+
+	let dominio2 = dominio
+
+	let length_dominio2 = length(dominio2)
+
+	let dominio = dominio[1, length_dominio -1]
+
+	for v_i = 1 to length_dominio
+		if dominio[v_i] != " " and dominio[v_i] is not null then
+		   if dominio[v_i] not matches "[a-z]" then
+			error "Dominio personal con formato errado, por favor verificar"
+			return FALSE
+		   end if
+		else
+			exit for
+		end if
+	end for
+{
+	if dominio not matches "[abcdefghijklmnopqrstuvwxyz]" then
+		error "Dominio personal con formato errado, por favor verificar"
+		return FALSE
+	end if
+}
+
+	--if dominio[length_dominio] not matches "*@*" then
+	if dominio2[length_dominio] != "@" then
+
 		error "El correo no se encuentra con el simbolo '@', por favor verifique"
 		return FALSE
 	end if
 
-	let dominio = dominio[1, length_dominio -1]
 
 	let length_dominio = length(dominio)
 
@@ -458,25 +563,96 @@ function valida_mail_0001(mail, v_tf)
 		return FALSE
 	end if
 
-
-	let length_dominio = length_dominio - 1
+	--let length_dominio = length_dominio - 1
 
 	--Extrae el dominio de Empresa
-	for v_i = length_dominio + 2 to length_mail
-		if mail[v_i] matches "." then
+	for v_i = length_dominio2 + 1 to length_mail
+		if mail[v_i] = "." then
+			--let count_points = 1
 			exit for
 		end if
-		let dom_empresa[v_i - length_dominio] = mail[v_i]
+		let dom_empresa[v_i - length_dominio2] = mail[v_i]
 	end for
 
-	if dom_empresa not matches "*mercaderiag*" then
-		error "Dominio de empresa debe ser unicamente mercaderiag, por favor revise"
+	let length_dom_empresa = length(dom_empresa)
+
+	--if dom_empresa not matches "*mercaderiag*" then
+	if dom_empresa != "mercaderiag" or dom_empresa is null then
+		--error "Dominio de empresa debe ser unicamente mercaderiag, por favor revise"
+		error "Dominio de empresa diferente a mercaderiag o nulo, por favor revise"
 		return FALSE
 	end if
 
+	--Espacio para determinar el dominio comercial
+	if length_dominio > 1 then
+		for v_i = v_i to length_mail
+			let dom_comercial[v_i - length_dominio2	- length_dom_empresa] = mail[v_i]
+			if mail[v_i] = "" then
+				exit for
+			end if
+		end for
+
+		if dom_comercial != ".com" and dom_comercial != ".com.co" and dom_comercial != ".es" then
+			error "El dominio comercial debe ser .com, .com.co o .es, por favor verificar"
+			return FALSE
+                end if
+
+		if dom_comercial = ".com" or dom_comercial = ".com.co" or dom_comercial = ".es" then
+			let count_dom_com = 1
+		end if
+
+		if count_dom_com = 0 then
+			error "El correo debe contar con un dominio comercial, por favor verificar"
+			return FALSE
+		end if
+	end if
+{
+	if 
+	     mail[length_mail - 3, length_mail] not matches "*.com" and
+	     mail[length_mail - 7, length_mail] not matches "*.com.co" and
+	     mail[length_mail - 2, length_mail] not matches "*.es"
+	then
+		error "El correo debe contar con dominio comercial, por favor verificar"
+		return FALSE
+	end if
+}
+	 
+
+		
+
+	if dom_comercial not matches "*.com" and 
+	   dom_comercial not matches "*.com.co" and
+	   dom_comercial not matches "*.es"
+	then
+		error "Dominio comercial debe ser .com, .com.co o .es, por favor verificar"
+		return FALSE
+	end if
 	
 
 	return v_tf
+end function
+
+--Funcion que valida el numero de documento
+function valida_documento_0001(v_documento)
+	define 
+		v_tt, length_documento, v_i smallint,
+		v_documento  char(10)
+
+	let length_documento = length(v_documento)
+
+	if length_documento < 5 and length_documento > 10 then
+		error "Cantidad de digitos de documento errado, por favor verificar"
+		return FALSE
+	end if
+
+	for v_i = 1 to length_documento
+		if v_documento[v_i] not matches "[1234567890]" then
+			error "Formato de documento invalido, por favor verificar"
+			return FALSE
+		end if
+	end for
+
+		
 end function
 
 --Funcion que valida si un campo numerico es invalido
@@ -499,6 +675,28 @@ function valida_dato_numerico_0001(dato, v_tf)
 		end for
 
 	return v_tf
+end function
+
+--Funcion que valida si un campo de caracter es invalido
+function valida_dato_caracter_0001(dato, v_tf)
+	define
+		dato   char(50),
+		v_tf,
+		length_dato,
+		v_i   smallint
+
+		let length_dato = length(dato)
+
+		let v_i = 1
+
+		for v_i = 1 to length_dato
+                        if dato[v_i] not matches "[a-z]" and dato[v_i] not matches "[A-Z]" then
+                                error "Formato de dato invalido, por favor verificar"
+                                return FALSE
+                        end if
+                end for
+
+        return v_tf
 end function
 
 --Funcion para determinar si el cliente desea registrar Telefono Movil, Fijo o Ambos
@@ -532,4 +730,11 @@ function valida_fijo_movil_0001()
 	close window w_tel_fij_mov_0001
 
 	return v_tf, v_nn
+end function
+
+function ins_dat_ini_clie_0001(v_tf)
+	define
+		v_tf smallint
+
+	
 end function
