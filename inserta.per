@@ -1,0 +1,44 @@
+database gen
+
+screen 
+{
+
+*******************************************
+*	   INSERCION DE CLIENTES          *
+*                                         *
+*  Nombres: [f1                        ]  *
+*  Apellidos: [f2                        ]*
+*  Documento: [f3         ]               * 
+*  Telefono: [f4       ]                  *
+*  Telefono 2: [f5        ]               *
+*  Correo: [f6                        ]   *
+*  Fecha Nac.: [f7         ] Edad: [f8]   *
+*  Pais Res.: [f9                   ]     *
+*  Ciudad Res.: [f0                   ]   *
+*  Pais Nac.: [fa                   ]     *
+*  Ciudad Nac.: [fb                  ]    *
+*  Nit Rol: [fc              ]            *
+*******************************************
+
+}
+end
+
+tables
+	dat_clie_0001
+
+
+attributes
+f1=formonly.nombres;
+f2=formonly.apellidos;
+f3=formonly.documento;
+f4=formonly.telefono;
+f5=formonly.telefono2;
+f6=formonly.correo;
+f7=formonly.fecha_nacimiento;
+f8=formonly.edad, noentry;
+f9=formonly.pais_residencia;
+f0=formonly.ciudad_residencia;
+fa=formonly.pais_nacimiento;
+fb=formonly.ciudad_nacimiento;
+fc=formonly.nit_rol;
+
