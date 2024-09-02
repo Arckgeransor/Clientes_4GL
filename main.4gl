@@ -2,6 +2,8 @@ database gen
 main
 	defer interrupt
 
+	display " MANTENIMIENTO DE INFORMACION DE CLIENTES 1.0 " at 2, 14 attributes(reverse)
+
 
 	call menu_principal_0001()	
 end main	
@@ -10,7 +12,7 @@ function menu_principal_0001()
 	define
 		v_opc smallint
 	
-	open window w_menu_principal_0001 at 2,2 with 2 rows, 70 columns attributes (border)
+	open window w_menu_principal_0001 at 4,2 with 2 rows, 70 columns attributes (border)
 	   menu "MENU PRINCIPAL"
 		command "Mantenimiento" "Insercion de datos"
 			let v_opc = 1
@@ -76,7 +78,8 @@ function mantenimiento_0001(v_tf)
 	define
 		v_tf smallint,
 		rl_cliente  record like dat_clie_0001.*	,
-		v_last_opc  char(15)
+		v_last_opc  char(15),
+		length_campo smallint
 
 	##Llamado de la ventana de insercion de datos
 	open window w_ins_datos_0001 at 7,5 with form "inserta" attributes (border)
@@ -87,11 +90,37 @@ function mantenimiento_0001(v_tf)
 			after field nombres
 				let v_last_opc = "nombres"
 
+				let length_campo = length(rl_cliente.nombres)
+
+				if rl_cliente.nombres is null or rl_cliente.nombres = "" or length_campo = 0 then
+					error "El campo de nombres no puede estar nulo"
+					next field nombres
+				end if
+
+				if length_campo <= 7 and rl_cliente.nombres is not null then
+					error "El campo de nombres debe tener como minimo 7 caracteres, por favor verificar"
+					next field nombres
+				end if
+				
+
 			before field apellidos
 				let v_last_opc = "apellidos"
 
 			after field apellidos
 				let v_last_opc = "apellidos"
+
+                                let length_campo = length(rl_cliente.apellidos)
+
+                                if rl_cliente.apellidos is null or rl_cliente.apellidos = "" or length_campo = 0 then
+                                        error "El campo de apellidos no puede estar nulo"
+					next field apellidos					
+                                end if
+
+                                if length_campo <= 7 and rl_cliente.apellidos is not null then
+                                        error "El campo de apellidos debe tener como minimo 7 caracteres, por favor verificar"
+                                        next field apellidos
+                                end if
+
 
 			before field documento
 				let v_last_opc = "documento"
@@ -212,4 +241,46 @@ function interfaz_0001(v_tf)
                 v_tf smallint
 
         return v_tf
+end function
+
+function valida_tipo_dato(v_tipo, v_campo)
+	define
+		v_tipo, v_campo_int, v_tf smallint,
+		v_campo char(10)
+		
+
+	case v_tipo
+		when 1 call valida_dato_entero_0001(v_campo, TRUE) returning v_tf
+		when 2 call valida_dato_texto_0001(v_campo) returning v_tf
+		otherwise error "Algo sucedio durante el proceso" 
+			  sleep 2
+			  exit program
+	end case
+end function
+
+function valida_dato_entero_0001(v_dato, v_tf)
+	define
+		v_dato, v_i, length_dato, v_tf smallint,
+		v_campo_aux char(10)
+
+	let length_dato = length(v_dato)
+
+	let v_campo_aux = v_dato
+
+	for v_i = 1 to length_dato
+		if v_campo_aux[v_i] not matches "[0-9]" then
+			error "El formato de dato no es valido, por favor verificar"
+			let v_tf = FALSE
+		end if
+	end for
+
+	return v_tf
+end function
+
+
+function valida_dato_texto_0001(v_dato)
+	define
+		v_dato char(10)
+
+	return TRUE
 end function
